@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MediGuardian — Healthcare IoT Companion App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { mblue:'#2563EB', mblued:'#1D4ED8', mgreen:'#10B981', mgreend:'#0B8F68', mred:'#EF4444', mbg:'#F8FAFC', mink:'#111827', muted:'#5B6472', line:'#E3E8EF' },
+  fontFamily: { b:['Nunito','sans-serif'] }
+}}}
+</script>
+<style>
+  :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+  *{box-sizing:border-box;}
+  body{background:#F8FAFC; font-family:'Nunito',sans-serif; color:#111827;}
+  .frame{ width:390px; max-width:100vw; height:844px; max-height:100dvh; background:#F8FAFC; border-radius:40px; overflow:hidden; position:relative; box-shadow:0 30px 60px -20px rgba(37,99,235,.3); border:8px solid #111827; }
+  @media (max-width:480px){ .frame{ border-radius:0; border:none; height:100dvh; } .stage{padding:0!important;} }
+  .stage{ min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:28px 12px; }
+  .screen{ position:absolute; inset:0; overflow-y:auto; padding:20px 18px calc(94px + env(safe-area-inset-bottom,0px)); }
+  .hid{ display:none; }
+  .card{ background:#fff; border:1px solid #E3E8EF; border-radius:18px; }
+  .tabbtn{ display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10.5px; color:#5B6472; font-weight:700; }
+  .tabbtn.active{ color:#1D4ED8; }
+  .bigbtn{ font-size:16px; font-weight:800; border-radius:16px; padding:14px; }
+  input[type=text],input[type=time],select{ border:1px solid #E3E8EF; border-radius:12px; padding:11px 12px; font-size:15px; width:100%; background:#fff; font-family:inherit; }
+  input:focus,select:focus{ outline:3px solid #2563EB; outline-offset:1px; }
+  .toggle{ width:44px; height:24px; border-radius:999px; background:#E3E8EF; position:relative; transition:.15s; cursor:pointer; }
+  .toggle.on{ background:#10B981; }
+  .toggle .dot{ width:18px; height:18px; border-radius:999px; background:#fff; position:absolute; top:3px; left:3px; transition:.15s; }
+  .toggle.on .dot{ left:23px; }
+  ::-webkit-scrollbar{ width:0; }
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="frame" id="frame">
+
+  <!-- DASHBOARD -->
+  <div class="screen" id="scr-dash">
+    <div class="flex items-center justify-between pt-2 mb-4">
+      <div><p class="text-sm text-muted">Good morning</p><p class="font-b font-extrabold text-2xl">John Doe</p></div>
+      <div class="w-10 h-10 rounded-full bg-mblue text-white flex items-center justify-center font-bold">JD</div>
+    </div>
+
+    <div class="card p-5 mb-4 flex items-center gap-4">
+      <svg viewBox="0 0 100 100" class="w-20 h-20 shrink-0">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#E3E8EF" stroke-width="10"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#10B981" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="264" stroke-dashoffset="26" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" text-anchor="middle" font-family="Nunito" font-size="22" font-weight="800" fill="#111827">90%</text>
+      </svg>
+      <div><p class="font-bold text-sm">Adherence this week</p><p class="text-xs text-muted">Next dose: Atorvastatin in 3h 20m</p></div>
+    </div>
+
+    <p class="font-b font-bold text-base mb-2">Today's medications</p>
+    <div class="card p-4 mb-4" id="dose-list"></div>
+
+    <div class="card p-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="w-3 h-3 rounded-full bg-mgreen"></span>
+        <div><p class="font-bold text-sm">Smart dispenser online</p><p class="text-xs text-muted">Battery 82% · Wi-Fi strong</p></div>
+      </div>
+      <button onclick="showTab('device', document.querySelectorAll('.tabbtn')[4])" class="text-xs font-bold text-mblued">Details →</button>
+    </div>
+
+    <button onclick="openAlert()" class="w-full mt-4 bg-mred/10 text-mred text-xs font-bold py-2 rounded-xl">Simulate: trigger a missed-dose alert</button>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="screen hid" id="scr-sched">
+    <p class="font-b font-extrabold text-2xl pt-2 mb-1">Medication Schedule</p>
+    <p class="text-sm text-muted mb-4">Add a prescription in a few simple steps.</p>
+
+    <div class="card p-4 mb-4 space-y-3">
+      <div><label class="text-sm font-bold">Pill name</label><input type="text" id="rx-name" placeholder="e.g. Metformin" /></div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-sm font-bold">Time</label><input type="time" id="rx-time" value="08:00" /></div>
+        <div><label class="text-sm font-bold">Dosage</label><input type="text" id="rx-dose" placeholder="1 tablet" /></div>
+      </div>
+      <div><label class="text-sm font-bold">Instructions</label>
+        <select id="rx-instr">
+          <option>Take with food</option>
+          <option>Take on empty stomach</option>
+          <option>Take with plenty of water</option>
+          <option>No special instructions</option>
+        </select>
+      </div>
+      <button class="w-full border-2 border-dashed border-line text-muted text-sm font-bold py-2.5 rounded-xl">📷 Upload prescription photo (optional)</button>
+      <button onclick="addRx()" class="w-full bg-mblue text-white bigbtn">+ Add to schedule</button>
+    </div>
+
+    <p class="font-b font-bold text-base mb-2">Current prescriptions</p>
+    <div class="space-y-2" id="rx-list"></div>
+  </div>
+
+  <!-- CAREGIVER -->
+  <div class="screen hid" id="scr-care">
+    <p class="font-b font-extrabold text-2xl pt-2 mb-1">Caregiver Portal</p>
+    <p class="text-sm text-muted mb-4">Monitoring John Doe · connected since Jan 2026</p>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="card p-3 text-center"><p class="text-2xl font-b font-extrabold text-mgreend">90%</p><p class="text-xs text-muted">Adherence score</p></div>
+      <div class="card p-3 text-center"><p class="text-2xl font-b font-extrabold text-mred">1</p><p class="text-xs text-muted">Missed this week</p></div>
+    </div>
+
+    <div class="card p-4 mb-4 flex items-center justify-between">
+      <div><p class="font-bold text-sm">Alert grace window</p><p class="text-xs text-muted">Notify caregivers if a dose is missed after:</p></div>
+      <select class="w-24"><option>15 min</option><option selected>30 min</option><option>60 min</option></select>
+    </div>
+
+    <p class="font-b font-bold text-base mb-2">Recent activity</p>
+    <div class="space-y-2" id="alert-list"></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="screen hid" id="scr-analytics">
+    <p class="font-b font-extrabold text-2xl pt-2 mb-1">Adherence Analytics</p>
+    <p class="text-sm text-muted mb-4">Last 7 days · exportable for doctor visits</p>
+
+    <div class="card p-4 mb-4">
+      <div class="flex items-end gap-2 h-28" id="bar-chart"></div>
+      <div class="flex justify-between text-[10px] text-muted mt-1" id="bar-labels"></div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
+      <div class="card p-2"><p class="font-b font-bold text-mblued">96%</p><p class="text-muted">Daily</p></div>
+      <div class="card p-2"><p class="font-b font-bold text-mblued">90%</p><p class="text-muted">Weekly</p></div>
+      <div class="card p-2"><p class="font-b font-bold text-mblued">88%</p><p class="text-muted">Monthly</p></div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button onclick="exportReport('PDF')" class="flex-1 bg-mblue text-white text-sm font-bold py-3 rounded-xl">⬇ Export PDF</button>
+      <button onclick="exportReport('CSV')" class="flex-1 bg-white border border-line text-mink text-sm font-bold py-3 rounded-xl">⬇ Export CSV</button>
+    </div>
+
+    <div class="card p-4 flex gap-3 items-start">
+      <span class="text-lg">💡</span>
+      <p class="text-sm">Evening doses are missed most often — consider a second reminder at 7 PM.</p>
+    </div>
+  </div>
+
+  <!-- DEVICE / SETTINGS -->
+  <div class="screen hid" id="scr-device">
+    <p class="font-b font-extrabold text-2xl pt-2 mb-1">Device & Settings</p>
+    <p class="text-sm text-muted mb-4">Smart dispenser status and preferences</p>
+
+    <div class="card p-4 mb-4 space-y-3">
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Battery</span><span class="text-sm text-mgreend font-bold">82% ●</span></div>
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Wi-Fi signal</span><span class="text-sm text-mgreend font-bold">Strong ●</span></div>
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Sensor health</span><span class="text-sm text-mgreend font-bold">Healthy ●</span></div>
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Lock status</span><span class="text-sm text-muted font-bold">Locked</span></div>
+    </div>
+
+    <p class="font-b font-bold text-base mb-2">Accessibility</p>
+    <div class="card p-4 mb-4 space-y-3">
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Large text mode</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="dot"></div></div></div>
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Voice guidance</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="dot"></div></div></div>
+      <div class="flex items-center justify-between"><span class="text-sm font-bold">Haptic feedback</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="dot"></div></div></div>
+    </div>
+
+    <button class="w-full bg-mred/10 text-mred bigbtn">🚨 One-tap emergency contact</button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-line px-2 pt-2 pb-[calc(10px+env(safe-area-inset-bottom,0px))]">
+    <div class="grid grid-cols-5">
+      <button class="tabbtn active" onclick="showTab('dash',this)"><span class="text-lg">🏠</span>Dashboard</button>
+      <button class="tabbtn" onclick="showTab('sched',this)"><span class="text-lg">💊</span>Schedule</button>
+      <button class="tabbtn" onclick="showTab('care',this)"><span class="text-lg">👨‍👩‍👧</span>Caregiver</button>
+      <button class="tabbtn" onclick="showTab('analytics',this)"><span class="text-lg">📊</span>Analytics</button>
+      <button class="tabbtn" onclick="showTab('device',this)"><span class="text-lg">⚙️</span>Device</button>
+    </div>
+  </div>
+
+  <!-- FULL-SCREEN ALERT MODAL -->
+  <div class="absolute inset-0 bg-mred hid flex-col items-center justify-center text-white p-8 text-center" id="alert-modal">
+    <p class="text-5xl mb-4">⏰</p>
+    <p class="font-b font-extrabold text-2xl mb-2">Dose Due Now</p>
+    <p class="text-sm opacity-90 mb-8">Atorvastatin · Take on empty stomach<br/>Grace period: 30:00 remaining</p>
+    <button onclick="confirmDose()" class="w-full bg-white text-mred bigbtn mb-3">✓ I took this dose</button>
+    <button onclick="closeAlert()" class="w-full border-2 border-white text-white bigbtn">Snooze 10 min</button>
+  </div>
+
+</div>
+</div>
+
+<script>
+let rxList = [
+  {name:'Metformin', time:'08:00', dose:'1 tablet', instr:'Take with food', taken:true},
+  {name:'Lisinopril', time:'08:00', dose:'1 tablet', instr:'Take with food', taken:true},
+  {name:'Atorvastatin', time:'20:00', dose:'1 tablet', instr:'Take on empty stomach', taken:false},
+];
+let alerts = [
+  {med:'Atorvastatin', time:'Yesterday 8:32 PM', note:'Missed — caregiver notified after 30 min', bad:true},
+  {med:'Metformin', time:'3 days ago 8:28 AM', note:'Taken 12 min late — no alert needed', bad:false},
+];
+
+function showTab(name, btn){
+  ['dash','sched','care','analytics','device'].forEach(s=>document.getElementById('scr-'+s).classList.add('hid'));
+  document.getElementById('scr-'+name).classList.remove('hid');
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; const hh=((h+11)%12)+1; return `${hh}:${String(m).padStart(2,'0')} ${ap}`; }
+
+function renderDash(){
+  document.getElementById('dose-list').innerHTML = rxList.map((r,i)=>`
+    <div class="flex items-center justify-between py-2 ${i>0?'border-t border-line':''}">
+      <div><p class="font-bold">${r.name} <span class="text-xs text-muted font-normal">· ${fmtTime(r.time)}</span></p><p class="text-xs text-muted">${r.instr}</p></div>
+      <button onclick="markTaken(${i})" class="px-3 py-2 rounded-full text-sm font-bold ${r.taken?'bg-mgreen text-white':'bg-mblue/10 text-mblued'}">${r.taken?'✓ Taken':'Mark taken'}</button>
+    </div>`).join('');
+}
+function markTaken(i){ rxList[i].taken = true; renderDash(); }
+
+function renderRxList(){
+  document.getElementById('rx-list').innerHTML = rxList.map(r=>`
+    <div class="card p-3 flex items-center justify-between">
+      <div><p class="font-bold text-sm">${r.name}</p><p class="text-xs text-muted">${fmtTime(r.time)} · ${r.dose} · ${r.instr}</p></div>
+    </div>`).join('');
+}
+function addRx(){
+  const name = document.getElementById('rx-name').value.trim();
+  const time = document.getElementById('rx-time').value || '08:00';
+  const dose = document.getElementById('rx-dose').value || '1 tablet';
+  const instr = document.getElementById('rx-instr').value;
+  if(!name) return;
+  rxList.push({name, time, dose, instr, taken:false});
+  document.getElementById('rx-name').value=''; document.getElementById('rx-dose').value='';
+  renderRxList(); renderDash();
+}
+
+function renderAlerts(){
+  document.getElementById('alert-list').innerHTML = alerts.map(a=>`
+    <div class="card p-3 flex gap-3 items-start">
+      <span class="text-lg">${a.bad?'🔴':'🟢'}</span>
+      <div><p class="font-bold text-sm">${a.med}</p><p class="text-xs text-muted">${a.time} — ${a.note}</p></div>
+    </div>`).join('');
+}
+
+function renderChart(){
+  const data=[100,85,100,70,90,100,93]; const labels=['M','T','W','T','F','S','S'];
+  document.getElementById('bar-chart').innerHTML = data.map(v=>`<div class="flex-1 bg-mgreen rounded-t-md" style="height:${v}%"></div>`).join('');
+  document.getElementById('bar-labels').innerHTML = labels.map(l=>`<span class="flex-1 text-center">${l}</span>`).join('');
+}
+function exportReport(kind){
+  const btn=event.target; const old=btn.textContent;
+  btn.textContent = '✓ '+kind+' ready';
+  setTimeout(()=>btn.textContent=old, 1600);
+}
+function openAlert(){ const m=document.getElementById('alert-modal'); m.classList.remove('hid'); m.classList.add('flex'); }
+function closeAlert(){ const m=document.getElementById('alert-modal'); m.classList.add('hid'); m.classList.remove('flex'); }
+function confirmDose(){ rxList[2].taken=true; renderDash(); closeAlert(); }
+
+renderDash(); renderRxList(); renderAlerts(); renderChart();
+</script>
+</body>
+</html>
